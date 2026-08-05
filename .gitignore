@@ -1,0 +1,25 @@
+# Confidential HEX20 source documents - never commit, even to a private repo
+koyosource/
+
+# Unrelated coursework, not part of the KOYO decoder deliverable
+6 COMM/
+
+# Downloaded SatNOGS data (frames, audio, waterfalls) - large, regenerable via fetch_satnogs.py
+data/
+
+# Superseded duplicate raw audio/waterfall files (35MB) - the useful history is in
+# archive/mislabeled_non_koyo_data/, which stays tracked
+archive/superseded_data/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Task Scheduler logs and lock file
+logs/
+refresh_koyo.lock
+
+# OS junk
+.DS_Store
+._*

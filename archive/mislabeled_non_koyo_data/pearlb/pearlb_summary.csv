@@ -1,0 +1,8 @@
+packet_type,packet_type_name,frame_size,payload_size,count
+0x33,telemetry_block,80,60,35
+0x83,status_block,64,44,8
+0x82,status_block,56,36,8
+0x80,text_beacon,87,67,8
+0x81,zero_block,88,68,7
+0x33,telemetry_block,34,14,5
+0x33,telemetry_block,78,58,3
