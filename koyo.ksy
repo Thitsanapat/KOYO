@@ -274,14 +274,19 @@ types:
         doc: CONFIRMED 2026
 
       # ---- offset 258 ----
-      - id: pib_health_status
-        type: u1
-        doc: reads 65 (spec range 0-175)
+      # 2026-08-05: swapped vs. earlier guess. HEX20_KOYO_LEOPS_Telecommands_v1_R1.pdf
+      # documents PIB HealthStatus range 0-175 and SD Card Failure Count range 0-100.
+      # offset 258 reads {0, 65, 68} - fits SD Card Failure Count's 0-100 range.
+      # offset 259 reads {0, 175} - fits PIB HealthStatus's 0-175 range exactly, and
+      # VIOLATES SD Card Failure Count's 0-100 max under the old assignment. Not a
+      # spacecraft anomaly - was a decode-side field swap. High confidence, not yet
+      # triple-cross-validated against a live-dashboard reading like the temp fields.
       - id: sd_card_failure_count
         type: u1
-        doc: |
-          reads 175, but spec max is 100 -> offset or scaling likely wrong.
-          FLAG FOR HEX20.
+        doc: reads {0, 65, 68} (spec range 0-100). Was mislabeled pib_health_status.
+      - id: pib_health_status
+        type: u1
+        doc: reads {0, 175} (spec range 0-175). Was mislabeled sd_card_failure_count.
 
       # ---- offset 260 ----
       - id: trailing

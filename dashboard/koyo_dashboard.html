@@ -173,12 +173,14 @@
     NORAD 98330) because SatNOGS' <code>norad_cat_id</code> filter silently matched the wrong satellite for
     this temporary ID. Fixed to filter by the permanent <code>sat_id</code> instead; that data was removed.
     <br><br>
-    <b>Worth flagging to HEX20:</b> <code>sd_card_failure_count</code> reads a constant 175 across all 10,422
-    valid post-launch frames, spanning 21 reboots and a month — above the documented spec max of 100, and
-    never once different. More consistent with a misidentified field/offset than a genuine failure counter.
-    <code>pib_health_status</code> is <i>mostly</i> constant (65 in 10,377 frames) but read 68 for a few minutes
-    right after the 2026-07-07 launch-day reboot (45 frames), then settled to 65 and hasn't moved since -
-    see "Health status transitions" below.
+    <b>Fixed 2026-08-05:</b> offsets 258/259 were swapped. HEX20's telecommand doc documents
+    <code>PIB HealthStatus</code> range 0-175 and <code>SD Card Failure Count</code> range 0-100 — the field
+    previously labeled <code>sd_card_failure_count</code> only ever read {0, 175}, impossible for a 0-100
+    field but exactly PIB HealthStatus's max, while the field labeled <code>pib_health_status</code> only ever
+    read {0, 65, 68}, comfortably within SD Card Failure Count's range. Corrected in <code>koyo.ksy</code> and
+    <code>decode_koyo.py</code>. <code>sd_card_failure_count</code> is now <i>mostly</i> constant (65) but read
+    68 for a few minutes right after the 2026-07-07 launch-day reboot, then settled - see "Health status
+    transitions" below.
   </div>
 
   <div class="stat-grid">
@@ -219,7 +221,7 @@
     <p class="note" style="margin:0 0 10px;" id="health-note">—</p>
     <div class="table-scroll" style="max-height:120px;">
       <table class="data" id="health-table">
-        <thead><tr><th>time (UTC)</th><th>pib_health_status</th><th>obs_id</th></tr></thead>
+        <thead><tr><th>time (UTC)</th><th>sd_card_failure_count</th><th>obs_id</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -305,7 +307,7 @@
       <table class="data" id="frame-table">
         <thead><tr>
           <th>obs_id</th><th>packet_counter</th><th>uptime_ms</th>
-          <th>boot_counter</th><th>rtc_datetime (UTC+5:30)</th><th>health</th><th>sd_fail</th>
+          <th>boot_counter</th><th>rtc_datetime (UTC+5:30)</th><th>sd_fail</th><th>pib_health</th>
         </tr></thead>
         <tbody></tbody>
       </table>
@@ -352,7 +354,7 @@ healthBody.innerHTML = DATA.health_changes.map(h => `
   <tr><td>${fmtDate(h.t)}</td><td>${h.health}</td><td style="color:${SERIES_HEX_LIGHT}">${h.obs_id}</td></tr>
 `).join("");
 document.getElementById("health-note").textContent =
-  `pib_health_status has changed ${DATA.health_changes.length} time(s) across ${DATA.post_launch_frames.toLocaleString()} post-launch frames - ` +
+  `sd_card_failure_count has changed ${DATA.health_changes.length} time(s) across ${DATA.post_launch_frames.toLocaleString()} post-launch frames - ` +
   (DATA.health_changes.length <= 2
     ? "reads 68 briefly right after the launch-day reboot, then settles to 65 within minutes and hasn't changed since."
     : "");

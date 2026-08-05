@@ -40,8 +40,11 @@ def decode_frame(frame: bytes) -> Dict[str, Any]:
     rtc_time_unix = struct.unpack_from("<I", frame, 239)[0]
     rtc_100th, rtc_seconds, rtc_minutes, rtc_hours, rtc_day, rtc_date, rtc_month = struct.unpack_from("<7B", frame, 249)
     rtc_year = struct.unpack_from("<H", frame, 256)[0]
-    pib_health_status = frame[258]
-    sd_card_failure_count = frame[259]
+    # 2026-08-05: swapped vs. earlier assignment. offset 259's old reading (175)
+    # violated the documented SD Card Failure Count max (100) but fits PIB
+    # HealthStatus's documented max (175) exactly. See CLAUDE.md oddity notes.
+    sd_card_failure_count = frame[258]
+    pib_health_status = frame[259]
 
     rtc_datetime: Optional[datetime] = None
     if rtc_year and 2000 <= rtc_year <= 2100 and rtc_month and rtc_date:

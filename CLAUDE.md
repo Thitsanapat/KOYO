@@ -99,8 +99,8 @@ against HEX20's public dashboard.
 | 254 | 1 | RTC date | u1 | reads 9 and 16 respectively — exact match |
 | 255 | 1 | RTC month | u1 | reads 7 |
 | 256–257 | 2 | RTC year | u2le | reads 2026 |
-| 258 | 1 | PIB health status | u1 | reads 65 |
-| 259 | 1 | SD card failure count | u1 | reads 175, but HEX20's spec says max 100 — offset or scaling may be wrong. FLAG |
+| 258 | 1 | SD card failure count | u1 | **CORRECTED 2026-08-05** (was mislabeled `pib_health_status`). Reads {0, 65, 68} — fits documented range 0-100 |
+| 259 | 1 | PIB health status | u1 | **CORRECTED 2026-08-05** (was mislabeled `sd_card_failure_count`). Reads {0, 175} — fits documented range 0-175 exactly |
 | 260–262 | 3 | trailing | — | reads `00 00 00`. CRC? padding? TODO |
 
 ### Two oddities worth knowing
@@ -108,8 +108,20 @@ against HEX20's public dashboard.
 - **The broken-down RTC block (249–257) reads UTC+05:30 (India Standard Time)
   while `rtc_time_unix` at 239 reads UTC.** Consistent across both passes, so
   possibly intentional (HEX20 is in Kerala). Do not "fix" this — record it.
-- `sd_card_failure_count` reading 175 against a documented max of 100 suggests
-  either the offset is off by one, or it isn't that field.
+- ~~`sd_card_failure_count` reading 175 against a documented max of 100~~
+  **RESOLVED 2026-08-05, was a decode bug, not a spacecraft anomaly.** HEX20's
+  LEOP telecommand doc (health parameter table, slide 8) documents
+  `PIB HealthStatus` range 0-175 and `SD Card Failure Count` range 0-100.
+  offset 258 and 259 were swapped: the field previously labeled
+  `pib_health_status` (offset 258) only ever reads {0, 65, 68} — fits SD Card
+  Failure Count's 0-100 range with room to spare — while the field previously
+  labeled `sd_card_failure_count` (offset 259) only ever reads {0, 175}, which
+  is impossible for a 0-100 field but lands exactly on PIB HealthStatus's
+  documented max of 175. Zero contradictions after swapping vs. one hard
+  contradiction before. `koyo.ksy` and `decode_koyo.py` corrected; CSV/InfluxDB
+  regenerated. High confidence (resolves a spec contradiction cleanly) but not
+  triple-cross-validated against a live timestamp-matched dashboard reading
+  the way the offset 80-87 temperature fields are.
 - **`packet_counter` (offset 18-19) is bounded to the range 49153-65486 across
   all 10,900+ real post-launch frames — it never reads below ~49150.** Checked
   2026-08-05: across 19 confirmed reboot events (boot_counter N -> N+1, RTC
@@ -176,10 +188,11 @@ factor, since most of those fields' documented ranges are wide/open-ended
 ("0 to X") and match many offsets at once. **The dashboard-hover method in this
 section is still needed for the remaining fields.**
 
-Also confirmed by the same document: `sd_card_failure_count` (offset 259) has
-documented range 0-100, but every valid post-launch frame (9,316 of them) reads
-175 - a hard confirmed anomaly, not just a suspicion. Worth raising with HEX20
-directly.
+~~Also confirmed by the same document: `sd_card_failure_count` (offset 259) has
+documented range 0-100, but every valid post-launch frame reads 175 - a hard
+confirmed anomaly.~~ **See oddity #2 in §3 (resolved 2026-08-05): offsets 258
+and 259 were swapped, not a spacecraft anomaly.** The 175-vs-100 contradiction
+is exactly what led to catching the swap in the first place.
 
 2026-07-30 (later): user shared screenshots of the live HEX20 dashboard
 (koyo.hex20.space - public, fine to use per constraints above) showing Battery
@@ -217,23 +230,6 @@ offset against the ground truth. Far more reliable than guessing round scale
 factors - it also caught the exact linear coefficients (which aren't round
 numbers), which no amount of range/stability guessing would have found.
 
-2026-07-30 (later): user shared screenshots of the live HEX20 dashboard
-(koyo.hex20.space - public, fine to use per constraints above) showing Battery
-Charge Voltage ~8.2-8.3V and CDH/COMM/ADCS-3V3 bus voltages as near-flat lines,
-plus Solar Panel Voltages swinging 0-20V (shape matches sp_voltage_candidate_1/2
-well - orbital day/night). Searched real frames for offsets matching each flat
-line's *stability* (not just value range, since exact scale factor is unknown
-without a timestamp-matched reading):
-
-- **Offset 50** (`comm_voltage_candidate` in koyo.ksy): reads constant 676
-  (cv=0.0002) - matches the flat-line shape of COMM Voltage, but 676 isn't a
-  clean /1000 (mV) scale like the SP voltage fields are; would need ~/100.
-  Weaker candidate than sp_voltage_candidate_1/2 - not confirmed.
-- Battery Charge Voltage (~8.2-8.3V) and CDH Voltage (~3.3V): not found by this
-  method. Either the scale isn't a round decimal factor, or they're not stored
-  as simple linear-scaled uint16 - or the field just isn't in the byte ranges
-  searched so far (32-119, 134-238).
-
 **What would actually resolve this**: a specific frame's `rtc_time_unix`
 matched against a dashboard reading at that *exact* timestamp (not "current
 value," which doesn't line up with any downloaded frame). That's still the
@@ -241,6 +237,70 @@ most reliable path for the remaining ~20 fields.
 
 Resolving the remaining solar panel/battery/CDH voltage and current scaling is
 the single highest-value next step.
+
+### 2026-08-05: full health parameter table (from the confidential LEOP doc)
+
+Extracted from `HEX20_KOYO_LEOPS_Telecommands_v1_R1.pdf` slides 7-8 so it
+doesn't need re-reading each session. **Local reference only per §7 — do not
+copy this table into any public file.** All currents/voltages are `uint16_t`
+unless noted; "-" means no documented bound on that side.
+
+| Parameter | Min | Max | Unit |
+|---|---|---|---|
+| SP YPlus/XPlus/YNegative/XNegative Voltage | 15 | 17 | Volt |
+| Cdh Current | - | 0.15 | Ampere |
+| Cdh Voltage | - | 3.3 | Volt |
+| Load Current (battery discharge) | - | 2.5 | Ampere |
+| Load Voltage (battery discharge) | 5 | 8.3 | Volt |
+| Generated Current (battery charge) | - | 3 | Ampere |
+| Battery Charge Voltage | - | 8.3 | Volt |
+| Aprs Pl Current (Digipeater) | - | 0.3 | Ampere |
+| ADCS MCB Current | - | 0.8 | Ampere |
+| ADCS 3V3 Current | - | 0.6 | Ampere |
+| Amp Space Pl Current | - | 2 | Ampere |
+| ADCS CMG Current | - | 0.8 | Ampere |
+| Fog Pl Current | - | 0.5 | Ampere |
+| IF Card MCU Current | 0 | - | Ampere |
+| Satellite Current_mode | PHOENIX | NOMINAL | u1 enum |
+| Satellite PIB Current_mode | PHOENIX | NOMINAL | u1 enum |
+| Antenna Deployment Status | 0 | 2 (text says 3) | u1: 0=none,1=UHF,2=VHF,3=both |
+| SP Deployment Status (retry count) | 0 | 15 | u1: 0=none,1=Y+,4=Y-,5=both |
+| Boot Counter | - | 4 (stale example, real max is higher) | u32 |
+| PIB HealthStatus | 0 | 175 | u1 |
+| SD Card Failure Count | 0 | 100 | u1 |
+
+Note: only Y+ and Y- solar panels have a deployment flag encoding — X+/X- are
+presumably body-mounted fixed panels, not deployables. Consistent with only 2
+of the 4 SP voltage channels (offsets 62/66) being pinned down so far.
+
+**Fields the doc does NOT cover** (confirmed missing from this table, but
+present on the live dashboard - see below): COMM Voltage, ADCS 3V3 Voltage,
+all 3 payload *voltages* (FOG/APRS/Amp Space - only their currents are
+documented), Command Accept Count, Command Reject Count. These will need the
+dashboard-timestamp-match method exclusively, no doc shortcut available.
+
+### 2026-08-05: full field list from the live dashboard (user-pasted)
+
+Confirms every field name shown on `koyo.hex20.space`, useful as the
+authoritative target list when searching unknown byte ranges 32-119/134-238:
+
+- **Temperatures**: Battery TH0, Battery TH1, CDH, ADCS (all 4 CONFIRMED,
+  offsets 80-87) · SP YPlus/XPlus/YNegative/XNegative Temperature (NOT in the
+  LEOP doc's table at all - undocumented, still fully unknown)
+- **Power**: CDH/Load/Generated Current · SP YPlus/XPlus/YNegative/XNegative
+  Voltage (2 of 4 are `sp_voltage_candidate_1`/`_2`, offsets 62/66) · Battery
+  Charge/CDH/COMM/ADCS-3V3 Bus Voltage
+- **Payloads**: FOG/APRS/Amp Space Voltage and Current (6 fields, all unknown)
+- **Command & Health**: Boot Counter, Command Accept Count, Command Reject
+  Count (the latter two are new - not in koyo.ksy at all yet, must be
+  somewhere in the still-unknown byte ranges)
+
+Live snapshot values from the same paste (no `rtc_time_unix` match, so
+reference only, not a confirmation): Battery TH0 7.0°C, TH1 6.9°C, CDH 14.2°C,
+ADCS 15.0°C, Boot Counter 20, Command Accept Count 190, Command Reject Count
+20. Boot Counter 20 matches the most recent real frame's `boot_counter` at
+time of writing - good sanity check that the live dashboard and SatNOGS-fed
+decoder are looking at the same spacecraft state.
 
 ---
 

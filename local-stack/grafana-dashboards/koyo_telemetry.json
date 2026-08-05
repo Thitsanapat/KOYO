@@ -203,7 +203,7 @@
     },
     {
       "type": "stat",
-      "title": "PIB Health Status (latest)",
+      "title": "PIB Health Status (latest) — corrected 2026-08-05, was swapped with SD Card Failure Count",
       "id": 7,
       "gridPos": { "x": 8, "y": 30, "w": 8, "h": 6 },
       "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
@@ -219,7 +219,7 @@
     },
     {
       "type": "stat",
-      "title": "SD Card Failure Count (latest) — FLAG: exceeds documented max 100",
+      "title": "SD Card Failure Count (latest) — corrected 2026-08-05, was swapped with PIB Health Status",
       "id": 8,
       "gridPos": { "x": 16, "y": 30, "w": 8, "h": 6 },
       "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
