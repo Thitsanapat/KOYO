@@ -2,7 +2,7 @@
   "title": "KOYO Telemetry",
   "uid": "koyo-telemetry",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "editable": true,
   "timezone": "utc",
   "time": { "from": "now-30d", "to": "now" },
@@ -243,6 +243,132 @@
         }
       },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none" }
+    },
+    {
+      "type": "row",
+      "title": "Mission Overview",
+      "gridPos": { "x": 0, "y": 36, "w": 24, "h": 1 },
+      "id": 103,
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Total Frames Decoded",
+      "id": 9,
+      "gridPos": { "x": 0, "y": 37, "w": 6, "h": 6 },
+      "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: -400d)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"packet_counter\")\n  |> group()\n  |> count()"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "none", "color": { "mode": "fixed", "fixedColor": "#2a78d6" } } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none" }
+    },
+    {
+      "type": "stat",
+      "title": "Distinct Observations",
+      "id": 10,
+      "gridPos": { "x": 6, "y": 37, "w": 6, "h": 6 },
+      "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: -400d)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"packet_counter\")\n  |> group()\n  |> distinct(column: \"obs_id\")\n  |> count()"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "none", "color": { "mode": "fixed", "fixedColor": "#eb6834" } } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none" }
+    },
+    {
+      "type": "timeseries",
+      "title": "Frames Decoded Per Day",
+      "id": 11,
+      "gridPos": { "x": 12, "y": 37, "w": 12, "h": 9 },
+      "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"packet_counter\")\n  |> group()\n  |> aggregateWindow(every: 1d, fn: count, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> rename(columns: {_value: \"Frames\"})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": { "drawStyle": "bars", "fillOpacity": 60, "lineWidth": 0 },
+          "color": { "mode": "fixed", "fixedColor": "#1baf7a" }
+        }
+      },
+      "options": { "tooltip": { "mode": "single" }, "legend": { "displayMode": "none" } }
+    },
+    {
+      "type": "row",
+      "title": "Event Log",
+      "gridPos": { "x": 0, "y": 46, "w": 24, "h": 1 },
+      "id": 104,
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "table",
+      "title": "Reboot Timeline",
+      "id": 12,
+      "gridPos": { "x": 0, "y": 47, "w": 12, "h": 9 },
+      "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: -400d)\n  |> filter(fn: (r) => r._measurement == \"koyo_events\" and r._field == \"boot_counter\")\n  |> group()\n  |> sort(columns: [\"_time\"], desc: true)\n  |> keep(columns: [\"_time\", \"_value\", \"obs_id\"])\n  |> rename(columns: {_value: \"boot_counter\"})"
+        }
+      ],
+      "fieldConfig": { "defaults": {} },
+      "options": {}
+    },
+    {
+      "type": "table",
+      "title": "Health Status Transitions (sd_card_failure_count)",
+      "id": 13,
+      "gridPos": { "x": 12, "y": 47, "w": 12, "h": 9 },
+      "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: -400d)\n  |> filter(fn: (r) => r._measurement == \"koyo_events\" and r._field == \"sd_card_failure_count\")\n  |> group()\n  |> sort(columns: [\"_time\"], desc: true)\n  |> keep(columns: [\"_time\", \"_value\", \"obs_id\"])\n  |> rename(columns: {_value: \"sd_card_failure_count\"})"
+        }
+      ],
+      "fieldConfig": { "defaults": {} },
+      "options": {}
+    },
+    {
+      "type": "row",
+      "title": "Recent Frames",
+      "gridPos": { "x": 0, "y": 56, "w": 24, "h": 1 },
+      "id": 105,
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "table",
+      "title": "Recent Frames",
+      "id": 14,
+      "gridPos": { "x": 0, "y": 57, "w": 24, "h": 10 },
+      "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"koyo\")\n  |> filter(fn: (r) => r._field == \"packet_counter\" or r._field == \"uptime_ms\" or r._field == \"boot_counter\" or r._field == \"sd_card_failure_count\" or r._field == \"pib_health_status\")\n  |> group(columns: [\"_measurement\"])\n  |> pivot(rowKey: [\"_time\", \"obs_id\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 30)\n  |> keep(columns: [\"_time\", \"obs_id\", \"packet_counter\", \"uptime_ms\", \"boot_counter\", \"sd_card_failure_count\", \"pib_health_status\"])"
+        }
+      ],
+      "fieldConfig": { "defaults": {} },
+      "options": {}
     }
   ]
 }
