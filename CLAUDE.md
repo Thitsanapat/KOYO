@@ -472,3 +472,30 @@ Later, separate task: SCION-X. Read
 gr-satellites maintainer has already analysed SCION-X there. Its problem is clock
 recovery, because NRZI and bit scrambling were not implemented, leaving long runs
 of identical bits.
+
+**2026-08-05: read the full discussion.** Confirmed technical details: UHF
+437.5 MHz, GFSK, 9600 baud, HDLC/AX.25 framing, no NRZI/G3RUH scrambling - long
+zero-runs create a CW tone that breaks clock recovery (root cause, per
+maintainer daniestevez). **Unresolved as of the discussion** - no working fix
+in gr-satellites yet.
+
+Two separate resource threads exist, don't conflate them:
+- **Jakub Horky** (external ground-station collaborator, Panska Ves, in the
+  Loren/HEX20 email thread) - raw IQ recordings, Google Drive folder already
+  noted in §5.
+- **JacyyChang** (HEX20/SCION-X team member, active in the GitHub discussion)
+  - shared a `.bin` sample + `.grc` flowgraph + README at
+  `https://drive.google.com/drive/folders/1VRhHdQ0Pv2btzNrKJ77zNd0aG2Czc3t_`,
+  and has a full independent decode attempt with code at
+  `https://github.com/JacyyChang/scionx-decode-writeup` - **"IChen-Luna" in
+  the discussion is also SCION-X team, likely who Loren meant by "Luna"** in
+  verbal conversation.
+
+JacyyChang's repo status (read 2026-08-05): frame detection and header
+decoding work cleanly (correct addresses/control/PID), but **CRC never
+passes on any of the 3 test frames** even after trying GNU Radio's Gardner
+timing recovery (reduced header bit errors 5/144 -> 2/144, still failing).
+Repo doesn't mention NRZI/descrambling yet, so likely predates that root-cause
+finding - worth checking if it's been updated since, or applying the NRZI
+fix to their pipeline directly rather than starting over. This is real,
+usable prior art - read their repo before writing any new decode approach.
