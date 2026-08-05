@@ -72,7 +72,7 @@ against HEX20's public dashboard.
 | 14 | 1 | AX.25 control | u1 | always `0x03` = UI frame |
 | 15 | 1 | AX.25 PID | u1 | always `0xF0` = no layer 3 |
 | 16–17 | 2 | magic / frame type | bytes | always `0x08 0x01` |
-| 18–19 | 2 | packet counter | **u2be** | +1 per beacon. Big-endian is odd vs the rest — UNCONFIRMED, verify |
+| 18–19 | 2 | packet counter | **u2be** | Increments during a boot session (up to 65486 observed), but is NOT "beacons since boot" — see oddity #3 below. Big-endian is odd vs the rest — UNCONFIRMED, verify |
 | 20–23 | 4 | unknown | — | byte 21 is constantly `0xEB`. TODO |
 | 24–27 | 4 | OBC uptime | u4le, milliseconds | increments ~10000 per beacon; cross-checked against RTC deltas within a pass. Resets on boot |
 | 28–31 | 4 | OBC time | u4le, Unix seconds UTC | 2026-07-09 frame reads 2025-07-14 (uninitialised); 2026-07-16 frame matches RTC. Evidence that telecommand `0x24 CaliberateObcWithRtc` executed between those dates |
@@ -110,6 +110,20 @@ against HEX20's public dashboard.
   possibly intentional (HEX20 is in Kerala). Do not "fix" this — record it.
 - `sd_card_failure_count` reading 175 against a documented max of 100 suggests
   either the offset is off by one, or it isn't that field.
+- **`packet_counter` (offset 18-19) is bounded to the range 49153-65486 across
+  all 10,900+ real post-launch frames — it never reads below ~49150.** Checked
+  2026-08-05: across 19 confirmed reboot events (boot_counter N -> N+1, RTC
+  populated on both sides), the post-reboot value is *always* 49160-51137,
+  clustering tightly around **49152 = `0xC000` exactly** (mean 49525, spread
+  only 1977). It then climbs during the boot session (up to 65486 observed)
+  before the next reboot resets it back into that same narrow band. No
+  in-session wraparound was found (zero drops >1000 within a single
+  boot_counter value), so this isn't 16-bit overflow either.
+  **This rules out "beacons transmitted since boot, starting at 0."** A
+  counter that restarts near a round hex boundary on every single reboot
+  looks more like a flash/EEPROM buffer write-pointer or session base address
+  than a beacon tally - worth asking HEX20 directly, or checking against
+  Aditya's Python decoder if it arrives (see §8).
 
 ---
 

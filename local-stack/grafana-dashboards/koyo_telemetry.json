@@ -183,7 +183,7 @@
         }
       },
       "options": { "tooltip": { "mode": "single" }, "legend": { "displayMode": "none" } },
-      "description": "Drops substantially at reboot rather than staying monotonic or resetting to zero — not yet explained, worth a closer look."
+      "description": "Not a simple beacon tally: across 19 confirmed reboots, always resets to 49160-51137 (never near 0), clustering around 0xC000=49152, then climbs as high as 65486 before the next reboot. Likely a flash/EEPROM write-pointer rather than a packet count. See CLAUDE.md oddity #3."
     },
     {
       "type": "stat",

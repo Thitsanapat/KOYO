@@ -279,9 +279,10 @@
 
   <div class="chart-section">
     <h3>Packet counter (CONFIRMED, last 7 days)</h3>
-    <p class="note">real values. +1 per beacon (10s interval), monotonic within a boot - but drops at each reboot
-      (e.g. 53,553 → 49,819 at the boot 16→17 transition), so it isn't a lifetime total either. Not previously
-      documented in CLAUDE.md; worth a closer look at what it actually counts.</p>
+    <p class="note">real values. +1 per beacon (10s interval), monotonic within a boot - but not a beacon tally:
+      across 19 confirmed reboots it always resets to 49,160-51,137, clustering around <code>0xC000</code> = 49,152,
+      never near zero, then climbs (up to 65,486 observed) before the next reboot resets it again. Looks more like
+      a flash/EEPROM write-pointer than a packet count. See CLAUDE.md oddity #3.</p>
     <div class="chart-wrap">
       <svg class="chart" id="chart-packet" viewBox="0 0 1000 220" preserveAspectRatio="none"></svg>
       <div class="tooltip" id="tooltip-packet"></div>
