@@ -2,7 +2,7 @@
   "title": "KOYO Telemetry",
   "uid": "koyo-telemetry",
   "schemaVersion": 39,
-  "version": 3,
+  "version": 4,
   "editable": true,
   "timezone": "utc",
   "time": { "from": "now-30d", "to": "now" },
@@ -11,17 +11,17 @@
   "panels": [
     {
       "type": "row",
-      "title": "EPS Temperatures — CONFIRMED (linear-fit R² > 0.998 vs HEX20 dashboard)",
+      "title": "01 / Temperatures",
       "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 },
-      "id": 100,
+      "id": 106,
       "collapsed": false,
       "panels": []
     },
     {
       "type": "timeseries",
-      "title": "Battery / CDH / ADCS Temperature",
+      "title": "Battery & Interface Card Temps — CONFIRMED (linear-fit R² > 0.998 vs HEX20 dashboard)",
       "id": 1,
-      "gridPos": { "x": 0, "y": 1, "w": 24, "h": 9 },
+      "gridPos": { "x": 0, "y": 1, "w": 12, "h": 8 },
       "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
       "targets": [
         {
@@ -48,13 +48,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "celsius",
-          "custom": {
-            "lineWidth": 1.5,
-            "fillOpacity": 0,
-            "pointSize": 3,
-            "showPoints": "never",
-            "lineInterpolation": "linear"
-          }
+          "custom": { "lineWidth": 1.5, "fillOpacity": 0, "pointSize": 3, "showPoints": "never", "lineInterpolation": "linear" }
         },
         "overrides": [
           { "matcher": { "id": "byName", "options": "Battery TH0" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#2a78d6" } }] },
@@ -63,55 +57,69 @@
           { "matcher": { "id": "byName", "options": "ADCS" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#1baf7a" } }] }
         ]
       },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "type": "text",
+      "title": "Solar Panel Temperatures — NOT YET DECODED",
+      "id": 15,
+      "gridPos": { "x": 12, "y": 1, "w": 12, "h": 8 },
       "options": {
-        "tooltip": { "mode": "multi" },
-        "legend": { "displayMode": "list", "placement": "bottom" }
+        "mode": "markdown",
+        "content": "**SP Y+ / X+ / Y- / X- Temperature (°C)**\n\nShown on HEX20's dashboard but not in the confidential LEOP telecommand doc's health table at all - fully undocumented. Byte offset unknown. Needs the timestamp-match method against `koyo.hex20.space` (see `CLAUDE.md` §4)."
       }
     },
     {
       "type": "row",
-      "title": "EPS Voltage Candidates — UNCONFIRMED (see CLAUDE.md §4)",
-      "gridPos": { "x": 0, "y": 10, "w": 24, "h": 1 },
-      "id": 101,
+      "title": "02 / Power",
+      "gridPos": { "x": 0, "y": 9, "w": 24, "h": 1 },
+      "id": 107,
       "collapsed": false,
       "panels": []
     },
     {
+      "type": "text",
+      "title": "Currents — CDH · Load · Generated — NOT YET DECODED",
+      "id": 16,
+      "gridPos": { "x": 0, "y": 10, "w": 8, "h": 8 },
+      "options": {
+        "mode": "markdown",
+        "content": "**CDH Current** (max 0.15A) · **Load Current** (max 2.5A) · **Generated Current** (max 3A)\n\nDocumented max only, no min - too wide a range to pin an offset without a timestamp-matched ground-truth reading."
+      }
+    },
+    {
       "type": "timeseries",
-      "title": "Solar Panel Voltage Candidates (high confidence, offsets 62/66)",
+      "title": "Solar Panel Voltages — 2 of 4 CANDIDATE (offsets 62/66)",
       "id": 2,
-      "gridPos": { "x": 0, "y": 11, "w": 16, "h": 9 },
+      "gridPos": { "x": 8, "y": 10, "w": 8, "h": 8 },
       "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
       "targets": [
         {
           "refId": "A",
           "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
-          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"sp_voltage_candidate_1\")\n  |> filter(fn: (r) => r._value > 0.0)\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> rename(columns: {_value: \"SP Voltage Candidate 1\"})"
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"sp_voltage_candidate_1\")\n  |> filter(fn: (r) => r._value > 0.0)\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> rename(columns: {_value: \"SP Voltage 1\"})"
         },
         {
           "refId": "B",
           "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
-          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"sp_voltage_candidate_2\")\n  |> filter(fn: (r) => r._value > 0.0)\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> rename(columns: {_value: \"SP Voltage Candidate 2\"})"
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"sp_voltage_candidate_2\")\n  |> filter(fn: (r) => r._value > 0.0)\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> rename(columns: {_value: \"SP Voltage 2\"})"
         }
       ],
       "fieldConfig": {
-        "defaults": {
-          "unit": "volt",
-          "custom": { "lineWidth": 1.5, "fillOpacity": 0, "showPoints": "never" }
-        },
+        "defaults": { "unit": "volt", "custom": { "lineWidth": 1.5, "fillOpacity": 0, "showPoints": "never" } },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "SP Voltage Candidate 1" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#2a78d6" } }] },
-          { "matcher": { "id": "byName", "options": "SP Voltage Candidate 2" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#eb6834" } }] }
+          { "matcher": { "id": "byName", "options": "SP Voltage 1" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#2a78d6" } }] },
+          { "matcher": { "id": "byName", "options": "SP Voltage 2" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#eb6834" } }] }
         ]
       },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
-      "description": "mV read directly as-is. Extremely stable (cv=0.005), fits 15-17V documented range. Not yet cross-checked against a timestamp-matched live dashboard reading, so not fully CONFIRMED."
+      "description": "Which 2 of the 4 physical channels (Y+/X+/Y-/X-) these are is unknown. The other 2 channels are not decoded at all. Not yet cross-checked against a timestamp-matched dashboard reading, so not fully CONFIRMED - see CLAUDE.md §4."
     },
     {
       "type": "timeseries",
-      "title": "COMM Voltage Candidate (weak)",
+      "title": "Bus Voltages — Batt · CDH · Comm · ADCS — 1 of 4 weak candidate",
       "id": 3,
-      "gridPos": { "x": 16, "y": 11, "w": 8, "h": 9 },
+      "gridPos": { "x": 16, "y": 10, "w": 8, "h": 8 },
       "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
       "targets": [
         {
@@ -125,71 +133,52 @@
           "unit": "none",
           "custom": { "lineWidth": 1.5, "fillOpacity": 0, "showPoints": "never" },
           "color": { "mode": "fixed", "fixedColor": "#1baf7a" }
-        },
-        "overrides": []
+        }
       },
       "options": { "tooltip": { "mode": "single" }, "legend": { "displayMode": "list", "placement": "bottom" } },
-      "description": "Raw offset-50 value. Flat-line shape matches HEX20's COMM Voltage panel, but scale factor unresolved — weaker candidate than SP voltage, not confirmed."
+      "description": "Battery Charge Voltage (max 8.3V), CDH Voltage (max 3.3V), and ADCS 3V3 Voltage are NOT decoded at all. Only COMM Voltage has a weak candidate (offset 50, raw ADC, scale factor unresolved)."
     },
     {
       "type": "row",
-      "title": "Spacecraft Health — CONFIRMED",
-      "gridPos": { "x": 0, "y": 20, "w": 24, "h": 1 },
-      "id": 102,
+      "title": "03 / Payloads",
+      "gridPos": { "x": 0, "y": 18, "w": 24, "h": 1 },
+      "id": 108,
       "collapsed": false,
       "panels": []
     },
     {
-      "type": "timeseries",
-      "title": "OBC Uptime",
-      "id": 4,
-      "gridPos": { "x": 0, "y": 21, "w": 12, "h": 9 },
-      "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
-          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"uptime_ms\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> rename(columns: {_value: \"Uptime\"})"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ms",
-          "custom": { "lineWidth": 1.5, "fillOpacity": 0, "showPoints": "never" },
-          "color": { "mode": "fixed", "fixedColor": "#2a78d6" }
-        }
-      },
-      "options": { "tooltip": { "mode": "single" }, "legend": { "displayMode": "none" } },
-      "description": "Resets to ~0 on reboot — sawtooth pattern is expected, not an anomaly."
+      "type": "text",
+      "title": "Payload Voltages — FOG · Digipeater · Amp Space — NOT YET DECODED",
+      "id": 17,
+      "gridPos": { "x": 0, "y": 19, "w": 12, "h": 6 },
+      "options": {
+        "mode": "markdown",
+        "content": "**FOG Voltage** · **APRS (Digipeater) Voltage** · **Amp Space Voltage** (all in Volt)\n\nNot in the confidential LEOP doc's health table at all - only the payload *currents* are documented there, not voltages. Undocumented, fully unknown offset."
+      }
     },
     {
-      "type": "timeseries",
-      "title": "Beacon Packet Counter",
-      "id": 5,
-      "gridPos": { "x": 12, "y": 21, "w": 12, "h": 9 },
-      "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
-          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"packet_counter\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> rename(columns: {_value: \"Packet Counter\"})"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "custom": { "lineWidth": 1.5, "fillOpacity": 0, "showPoints": "never" },
-          "color": { "mode": "fixed", "fixedColor": "#eb6834" }
-        }
-      },
-      "options": { "tooltip": { "mode": "single" }, "legend": { "displayMode": "none" } },
-      "description": "Not a simple beacon tally: across 19 confirmed reboots, always resets to 49160-51137 (never near 0), clustering around 0xC000=49152, then climbs as high as 65486 before the next reboot. Likely a flash/EEPROM write-pointer rather than a packet count. See CLAUDE.md oddity #3."
+      "type": "text",
+      "title": "Payload Currents — FOG · Digipeater · Amp Space — NOT YET DECODED",
+      "id": 18,
+      "gridPos": { "x": 12, "y": 19, "w": 12, "h": 6 },
+      "options": {
+        "mode": "markdown",
+        "content": "**FOG Current** (max 0.5A) · **APRS Current** (max 0.3A) · **Amp Space Current** (max 2A)\n\nDocumented max only, no min - too wide a range to pin an offset without a timestamp-matched ground-truth reading."
+      }
+    },
+    {
+      "type": "row",
+      "title": "04 / Command & Health",
+      "gridPos": { "x": 0, "y": 25, "w": 24, "h": 1 },
+      "id": 109,
+      "collapsed": false,
+      "panels": []
     },
     {
       "type": "stat",
-      "title": "Boot Counter (latest)",
+      "title": "Boot Counter (latest) — CONFIRMED",
       "id": 6,
-      "gridPos": { "x": 0, "y": 30, "w": 8, "h": 6 },
+      "gridPos": { "x": 0, "y": 26, "w": 8, "h": 6 },
       "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
       "targets": [
         {
@@ -202,10 +191,76 @@
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none" }
     },
     {
+      "type": "text",
+      "title": "Command Accept Count — NOT YET DECODED",
+      "id": 19,
+      "gridPos": { "x": 8, "y": 26, "w": 8, "h": 6 },
+      "options": {
+        "mode": "markdown",
+        "content": "Not in `koyo.ksy` at all yet. Not in the confidential LEOP doc's health table either - new lead spotted only from the live HEX20 dashboard (2026-08-05). Byte offset completely unknown."
+      }
+    },
+    {
+      "type": "text",
+      "title": "Command Reject Count — NOT YET DECODED",
+      "id": 20,
+      "gridPos": { "x": 16, "y": 26, "w": 8, "h": 6 },
+      "options": {
+        "mode": "markdown",
+        "content": "Same as Command Accept Count - not in `koyo.ksy`, not in the confidential doc's table, new lead from the live dashboard only. Byte offset completely unknown."
+      }
+    },
+    {
+      "type": "row",
+      "title": "Additional Confirmed Fields (not shown on HEX20's public page)",
+      "gridPos": { "x": 0, "y": 32, "w": 24, "h": 1 },
+      "id": 110,
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "OBC Uptime",
+      "id": 4,
+      "gridPos": { "x": 0, "y": 33, "w": 12, "h": 9 },
+      "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"uptime_ms\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> rename(columns: {_value: \"Uptime\"})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "custom": { "lineWidth": 1.5, "fillOpacity": 0, "showPoints": "never" }, "color": { "mode": "fixed", "fixedColor": "#2a78d6" } }
+      },
+      "options": { "tooltip": { "mode": "single" }, "legend": { "displayMode": "none" } },
+      "description": "Resets to ~0 on reboot — sawtooth pattern is expected, not an anomaly."
+    },
+    {
+      "type": "timeseries",
+      "title": "Beacon Packet Counter",
+      "id": 5,
+      "gridPos": { "x": 12, "y": 33, "w": 12, "h": 9 },
+      "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"packet_counter\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> rename(columns: {_value: \"Packet Counter\"})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "none", "custom": { "lineWidth": 1.5, "fillOpacity": 0, "showPoints": "never" }, "color": { "mode": "fixed", "fixedColor": "#eb6834" } }
+      },
+      "options": { "tooltip": { "mode": "single" }, "legend": { "displayMode": "none" } },
+      "description": "Not a simple beacon tally: across 19 confirmed reboots, always resets to 49160-51137 (never near 0), clustering around 0xC000=49152, then climbs as high as 65486 before the next reboot. Likely a flash/EEPROM write-pointer rather than a packet count. See CLAUDE.md oddity #3."
+    },
+    {
       "type": "stat",
       "title": "PIB Health Status (latest) — corrected 2026-08-05, was swapped with SD Card Failure Count",
       "id": 7,
-      "gridPos": { "x": 8, "y": 30, "w": 8, "h": 6 },
+      "gridPos": { "x": 0, "y": 42, "w": 12, "h": 6 },
       "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
       "targets": [
         {
@@ -221,7 +276,7 @@
       "type": "stat",
       "title": "SD Card Failure Count (latest) — corrected 2026-08-05, was swapped with PIB Health Status",
       "id": 8,
-      "gridPos": { "x": 16, "y": 30, "w": 8, "h": 6 },
+      "gridPos": { "x": 12, "y": 42, "w": 12, "h": 6 },
       "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
       "targets": [
         {
@@ -233,13 +288,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "none",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "#eb6834", "value": null },
-              { "color": "#c0392b", "value": 100 }
-            ]
-          }
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "#eb6834", "value": null }, { "color": "#c0392b", "value": 100 } ] }
         }
       },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none" }
@@ -247,7 +296,7 @@
     {
       "type": "row",
       "title": "Mission Overview",
-      "gridPos": { "x": 0, "y": 36, "w": 24, "h": 1 },
+      "gridPos": { "x": 0, "y": 48, "w": 24, "h": 1 },
       "id": 103,
       "collapsed": false,
       "panels": []
@@ -256,7 +305,7 @@
       "type": "stat",
       "title": "Total Frames Decoded",
       "id": 9,
-      "gridPos": { "x": 0, "y": 37, "w": 6, "h": 6 },
+      "gridPos": { "x": 0, "y": 49, "w": 6, "h": 6 },
       "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
       "targets": [
         {
@@ -272,7 +321,7 @@
       "type": "stat",
       "title": "Distinct Observations",
       "id": 10,
-      "gridPos": { "x": 6, "y": 37, "w": 6, "h": 6 },
+      "gridPos": { "x": 6, "y": 49, "w": 6, "h": 6 },
       "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
       "targets": [
         {
@@ -288,7 +337,7 @@
       "type": "timeseries",
       "title": "Frames Decoded Per Day",
       "id": 11,
-      "gridPos": { "x": 12, "y": 37, "w": 12, "h": 9 },
+      "gridPos": { "x": 12, "y": 49, "w": 12, "h": 9 },
       "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
       "targets": [
         {
@@ -298,18 +347,14 @@
         }
       ],
       "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "custom": { "drawStyle": "bars", "fillOpacity": 60, "lineWidth": 0 },
-          "color": { "mode": "fixed", "fixedColor": "#1baf7a" }
-        }
+        "defaults": { "unit": "none", "custom": { "drawStyle": "bars", "fillOpacity": 60, "lineWidth": 0 }, "color": { "mode": "fixed", "fixedColor": "#1baf7a" } }
       },
       "options": { "tooltip": { "mode": "single" }, "legend": { "displayMode": "none" } }
     },
     {
       "type": "row",
       "title": "Event Log",
-      "gridPos": { "x": 0, "y": 46, "w": 24, "h": 1 },
+      "gridPos": { "x": 0, "y": 58, "w": 24, "h": 1 },
       "id": 104,
       "collapsed": false,
       "panels": []
@@ -318,7 +363,7 @@
       "type": "table",
       "title": "Reboot Timeline",
       "id": 12,
-      "gridPos": { "x": 0, "y": 47, "w": 12, "h": 9 },
+      "gridPos": { "x": 0, "y": 59, "w": 12, "h": 9 },
       "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
       "targets": [
         {
@@ -334,7 +379,7 @@
       "type": "table",
       "title": "Health Status Transitions (sd_card_failure_count)",
       "id": 13,
-      "gridPos": { "x": 12, "y": 47, "w": 12, "h": 9 },
+      "gridPos": { "x": 12, "y": 59, "w": 12, "h": 9 },
       "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
       "targets": [
         {
@@ -349,7 +394,7 @@
     {
       "type": "row",
       "title": "Recent Frames",
-      "gridPos": { "x": 0, "y": 56, "w": 24, "h": 1 },
+      "gridPos": { "x": 0, "y": 68, "w": 24, "h": 1 },
       "id": 105,
       "collapsed": false,
       "panels": []
@@ -358,7 +403,7 @@
       "type": "table",
       "title": "Recent Frames",
       "id": 14,
-      "gridPos": { "x": 0, "y": 57, "w": 24, "h": 10 },
+      "gridPos": { "x": 0, "y": 69, "w": 24, "h": 10 },
       "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
       "targets": [
         {
