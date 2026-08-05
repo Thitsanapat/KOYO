@@ -36,3 +36,8 @@ local-stack/grafana-data-startup.log
 MAIL_LOREN.pdf
 MAIL_LOREN.docx
 ~$*.docx
+
+# SCION-X: other people's cloned repos / downloaded resources - not ours to
+# redistribute. Our own SCION-X code/notes (once any exist) should live
+# directly under scionx/, not under scionx/external/.
+scionx/external/

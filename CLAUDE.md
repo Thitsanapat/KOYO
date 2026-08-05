@@ -48,10 +48,15 @@ Launched on SpaceX Transporter-17, 2026-07-07. Healthy and beaconing normally.
 | Orbit | Sun-synchronous, ~600 km, inclination 97.75 deg |
 | SatNOGS Rx success rate | ~52% |
 
-Sibling spacecraft **SCION-X** (NORAD 98266, later 69885/69873, GMSK 9600 at
-437.500 MHz, **294-byte** frames) launched on the same rocket and is in an
-anomalous state. Do not mix the two — different modulation, different frame
-length, different decoder. SCION-X is a later, separate task.
+Sibling spacecraft **SCION-X** (NORAD 98266, later 69885/69873, ~437.5 MHz,
+launched on the same rocket, is in an anomalous state. **Modulation/frame
+length UNCONFIRMED — was recorded here as "GMSK 9600, 294-byte frames" but a
+HEX20 team member's hands-on signal analysis of real captured audio (see §10
+SCION-X notes) says AFSK/1200bps and a 274-byte frame (272 payload + 2 FCS),
+backed by a ground-test reference frame. Trust the hands-on analysis over
+this row until reconciled** — do not mix the two satellites regardless of
+which numbers turn out right; different modulation, different frame length,
+different decoder. SCION-X is a later, separate task.
 
 ---
 
@@ -491,11 +496,47 @@ Two separate resource threads exist, don't conflate them:
   the discussion is also SCION-X team, likely who Loren meant by "Luna"** in
   verbal conversation.
 
-JacyyChang's repo status (read 2026-08-05): frame detection and header
-decoding work cleanly (correct addresses/control/PID), but **CRC never
-passes on any of the 3 test frames** even after trying GNU Radio's Gardner
-timing recovery (reduced header bit errors 5/144 -> 2/144, still failing).
-Repo doesn't mention NRZI/descrambling yet, so likely predates that root-cause
-finding - worth checking if it's been updated since, or applying the NRZI
-fix to their pipeline directly rather than starting over. This is real,
-usable prior art - read their repo before writing any new decode approach.
+**2026-08-05, corrected after actually reading the repo (`scionx/external/`,
+gitignored - cloned locally, not ours to redistribute):** my first pass at
+this ("just apply the NRZI fix to their pipeline") was wrong on two counts -
+worth recording so the mistake isn't repeated.
+
+- **Modulation is AFSK/1200bps, not GFSK/9600** per JacyyChang's own README,
+  from hands-on analysis of the *same* SatNOGS observation (14459039) the
+  gr-satellites discussion is about. This also fits the "long zero-runs make
+  a CW tone" root cause better than GFSK would. My GFSK/9600 read of the
+  discussion thread was very likely a mis-extraction - see the corrected
+  spacecraft table row in §2.
+- **There's no NRZI to "fix" on the ground.** If the satellite's firmware
+  never NRZI-encodes the transmission (per daniestevez's diagnosis), there is
+  nothing to *reverse* at the receiver - decoding the raw bits directly is
+  already correct. The actual fallout of that design choice is that long
+  zero-runs make the receiver's clock-recovery loop lose lock, which is a
+  demodulator robustness problem, not a missing decode step.
+- **Frame is 274 bytes (272 payload + 2 FCS), not 294** - `REFERENCE_FRAME.md`
+  has an actual ground-test hex dump: dest `BN0CU `, src `BN0SCX`, control
+  `0x03`, PID `0xF0`, matching `SCIONX_doppler.grc` in `6 COMM/`.
+
+What the repo actually shows (very rigorous, already ruled out a lot):
+frame detection is excellent (z-score 12-13, exact hits on all 3 known
+frames). Header/address/PID decode perfectly and match the ground-test
+reference exactly. Zero-run padding segments are mostly clean (0.8-2.5%
+false-positive rate). **The problem is the data segments**: 2-7% of bit
+decisions flip when the threshold changes, with a slow "invisible curve" of
+drifting asymmetry across the segment. They tried real GNU Radio timing
+recovery (Gardner, swept 125 parameter combinations) - best config dropped
+header bit errors from 5/144 to 2/144 with a visibly cleaner eye diagram,
+**but CRC still fails on all 3 frames** even then. Errors are "scattered at
+high-transition, low-confidence bits," explicitly *not* concentrated in the
+zero-run regions - so the classic "PLL loses lock during the CW-tone
+zero-run" story may not even be the dominant driver of *this* pipeline's
+specific CRC failures (their architecture uses cross-correlation frame
+alignment + fixed-phase sampling for most stages, not a continuously-tracking
+loop that would be vulnerable to that in the first place).
+
+Their own README frames this as an open, unsolved problem and asks the
+community for ideas - this is not a quick fix. Real prior art worth reading
+in full (`scionx/external/scionx-decode-writeup/README.md` and each
+subfolder's own README) before attempting anything new, but don't
+underestimate the effort - a skilled HEX20 team member has already spent
+real time on this without cracking it.
