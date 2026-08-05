@@ -1,0 +1,248 @@
+{
+  "title": "KOYO Telemetry",
+  "uid": "koyo-telemetry",
+  "schemaVersion": 39,
+  "version": 2,
+  "editable": true,
+  "timezone": "utc",
+  "time": { "from": "now-30d", "to": "now" },
+  "refresh": "5m",
+  "tags": ["koyo", "satnogs"],
+  "panels": [
+    {
+      "type": "row",
+      "title": "EPS Temperatures — CONFIRMED (linear-fit R² > 0.998 vs HEX20 dashboard)",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 },
+      "id": 100,
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Battery / CDH / ADCS Temperature",
+      "id": 1,
+      "gridPos": { "x": 0, "y": 1, "w": 24, "h": 9 },
+      "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"battery_th0_temp_c\")\n  |> filter(fn: (r) => r._value > -100.0 and r._value < 100.0)\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> rename(columns: {_value: \"Battery TH0\"})"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"battery_th1_temp_c\")\n  |> filter(fn: (r) => r._value > -100.0 and r._value < 100.0)\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> rename(columns: {_value: \"Battery TH1\"})"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"cdh_temp_c\")\n  |> filter(fn: (r) => r._value > -100.0 and r._value < 100.0)\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> rename(columns: {_value: \"CDH\"})"
+        },
+        {
+          "refId": "D",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"adcs_temp_c\")\n  |> filter(fn: (r) => r._value > -100.0 and r._value < 100.0)\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> rename(columns: {_value: \"ADCS\"})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "custom": {
+            "lineWidth": 1.5,
+            "fillOpacity": 0,
+            "pointSize": 3,
+            "showPoints": "never",
+            "lineInterpolation": "linear"
+          }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Battery TH0" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#2a78d6" } }] },
+          { "matcher": { "id": "byName", "options": "Battery TH1" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#3987e5" } }] },
+          { "matcher": { "id": "byName", "options": "CDH" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#eb6834" } }] },
+          { "matcher": { "id": "byName", "options": "ADCS" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#1baf7a" } }] }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      }
+    },
+    {
+      "type": "row",
+      "title": "EPS Voltage Candidates — UNCONFIRMED (see CLAUDE.md §4)",
+      "gridPos": { "x": 0, "y": 10, "w": 24, "h": 1 },
+      "id": 101,
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Solar Panel Voltage Candidates (high confidence, offsets 62/66)",
+      "id": 2,
+      "gridPos": { "x": 0, "y": 11, "w": 16, "h": 9 },
+      "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"sp_voltage_candidate_1\")\n  |> filter(fn: (r) => r._value > 0.0)\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> rename(columns: {_value: \"SP Voltage Candidate 1\"})"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"sp_voltage_candidate_2\")\n  |> filter(fn: (r) => r._value > 0.0)\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> rename(columns: {_value: \"SP Voltage Candidate 2\"})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "volt",
+          "custom": { "lineWidth": 1.5, "fillOpacity": 0, "showPoints": "never" }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "SP Voltage Candidate 1" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#2a78d6" } }] },
+          { "matcher": { "id": "byName", "options": "SP Voltage Candidate 2" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#eb6834" } }] }
+        ]
+      },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "description": "mV read directly as-is. Extremely stable (cv=0.005), fits 15-17V documented range. Not yet cross-checked against a timestamp-matched live dashboard reading, so not fully CONFIRMED."
+    },
+    {
+      "type": "timeseries",
+      "title": "COMM Voltage Candidate (weak)",
+      "id": 3,
+      "gridPos": { "x": 16, "y": 11, "w": 8, "h": 9 },
+      "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"comm_voltage_candidate\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> rename(columns: {_value: \"COMM Voltage (weak)\"})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": { "lineWidth": 1.5, "fillOpacity": 0, "showPoints": "never" },
+          "color": { "mode": "fixed", "fixedColor": "#1baf7a" }
+        },
+        "overrides": []
+      },
+      "options": { "tooltip": { "mode": "single" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "description": "Raw offset-50 value. Flat-line shape matches HEX20's COMM Voltage panel, but scale factor unresolved — weaker candidate than SP voltage, not confirmed."
+    },
+    {
+      "type": "row",
+      "title": "Spacecraft Health — CONFIRMED",
+      "gridPos": { "x": 0, "y": 20, "w": 24, "h": 1 },
+      "id": 102,
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "OBC Uptime",
+      "id": 4,
+      "gridPos": { "x": 0, "y": 21, "w": 12, "h": 9 },
+      "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"uptime_ms\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> rename(columns: {_value: \"Uptime\"})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": { "lineWidth": 1.5, "fillOpacity": 0, "showPoints": "never" },
+          "color": { "mode": "fixed", "fixedColor": "#2a78d6" }
+        }
+      },
+      "options": { "tooltip": { "mode": "single" }, "legend": { "displayMode": "none" } },
+      "description": "Resets to ~0 on reboot — sawtooth pattern is expected, not an anomaly."
+    },
+    {
+      "type": "timeseries",
+      "title": "Beacon Packet Counter",
+      "id": 5,
+      "gridPos": { "x": 12, "y": 21, "w": 12, "h": 9 },
+      "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"packet_counter\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> keep(columns: [\"_time\", \"_value\"])\n  |> rename(columns: {_value: \"Packet Counter\"})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": { "lineWidth": 1.5, "fillOpacity": 0, "showPoints": "never" },
+          "color": { "mode": "fixed", "fixedColor": "#eb6834" }
+        }
+      },
+      "options": { "tooltip": { "mode": "single" }, "legend": { "displayMode": "none" } },
+      "description": "Drops substantially at reboot rather than staying monotonic or resetting to zero — not yet explained, worth a closer look."
+    },
+    {
+      "type": "stat",
+      "title": "Boot Counter (latest)",
+      "id": 6,
+      "gridPos": { "x": 0, "y": 30, "w": 8, "h": 6 },
+      "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"boot_counter\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "none", "color": { "mode": "fixed", "fixedColor": "#2a78d6" } } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none" }
+    },
+    {
+      "type": "stat",
+      "title": "PIB Health Status (latest)",
+      "id": 7,
+      "gridPos": { "x": 8, "y": 30, "w": 8, "h": 6 },
+      "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"pib_health_status\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "none", "color": { "mode": "fixed", "fixedColor": "#1baf7a" } } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none" }
+    },
+    {
+      "type": "stat",
+      "title": "SD Card Failure Count (latest) — FLAG: exceeds documented max 100",
+      "id": 8,
+      "gridPos": { "x": 16, "y": 30, "w": 8, "h": 6 },
+      "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "koyo-influxdb" },
+          "query": "from(bucket: \"koyo_telemetry\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"koyo\" and r._field == \"sd_card_failure_count\")\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\n  |> last()\n  |> keep(columns: [\"_time\", \"_value\"])"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#eb6834", "value": null },
+              { "color": "#c0392b", "value": 100 }
+            ]
+          }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "none" }
+    }
+  ]
+}

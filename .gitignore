@@ -20,6 +20,19 @@ __pycache__/
 logs/
 refresh_koyo.lock
 
+# Local Grafana + InfluxDB stack - downloaded binaries and runtime data only;
+# start.ps1/stop.ps1, provisioning/, grafana-dashboards/, load_influx.py stay tracked
+local-stack/influxdb/
+local-stack/influxdb-data/
+local-stack/grafana/
+local-stack/grafana-data/
+local-stack/grafana-data-startup.log
+
 # OS junk
 .DS_Store
 ._*
+
+# Private correspondence - never commit
+MAIL_LOREN.pdf
+MAIL_LOREN.docx
+~$*.docx

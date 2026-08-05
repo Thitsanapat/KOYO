@@ -386,9 +386,12 @@ valid test case - SatNOGS never decoded it either).
 3. Crack the EPS block using the dashboard-comparison method in section 4. Start
    with solar panel voltages and the scaling factor.
 4. Extend `koyo.ksy` and `validate.py` together as each field is confirmed.
-5. Stand up InfluxDB and Grafana locally, feed the decoded CSV in, and rebuild
-   HEX20's panel layout. That is a demonstrable end-to-end pipeline even before
-   anything is merged upstream.
+5. **DONE (2026-08-05).** Local InfluxDB + Grafana stack running, fed from the
+   decoded CSV, panels covering every confirmed/candidate field. See
+   `local-stack/README.md`. This directly answers Loren's 2026-07-21 ask for
+   "a Grafana interface on SatNOGS" — it's real Grafana, just local, since the
+   public-facing version still needs the upstream merge decision. Re-run
+   `local-stack/load_influx.py` after every `decode_koyo.py` refresh.
 
 Later, separate task: SCION-X. Read
 `https://github.com/daniestevez/gr-satellites/discussions/843` first — the
