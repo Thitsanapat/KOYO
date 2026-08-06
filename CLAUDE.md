@@ -49,13 +49,21 @@ Launched on SpaceX Transporter-17, 2026-07-07. Healthy and beaconing normally.
 | SatNOGS Rx success rate | ~52% |
 
 Sibling spacecraft **SCION-X** (NORAD 98266, later 69885/69873, ~437.5 MHz,
-launched on the same rocket, is in an anomalous state. **Modulation/frame
-length UNCONFIRMED — was recorded here as "GMSK 9600, 294-byte frames" but a
-HEX20 team member's hands-on signal analysis of real captured audio (see §10
-SCION-X notes) says AFSK/1200bps and a 274-byte frame (272 payload + 2 FCS),
-backed by a ground-test reference frame. Trust the hands-on analysis over
-this row until reconciled** — do not mix the two satellites regardless of
-which numbers turn out right; different modulation, different frame length,
+launched on the same rocket, is in an anomalous state. **Modulation
+type/frame length UNCONFIRMED** — was recorded here as "GMSK 9600,
+294-byte frames"; a HEX20 team member's (JacyyChang) hands-on analysis of
+real captured audio says the frame is **274 bytes** (272 payload + 2 FCS,
+backed by an actual ground-test reference frame - trust this over 294) and
+initially described the modulation as "AFSK/1200bps" in prose. **But their
+own working code uses 9600 baud** (`SPS=5` at `FS=48000` Hz -> 9600 sym/s)
+and that code successfully decodes the header with 0-5 bit errors out of
+144 against the same ground-truth reference - i.e. the number that's
+actually been verified by a successful decode is **9600 baud, not 1200**.
+Treat the "1200bps"/"AFSK" wording as unreliable prose that likely wasn't
+updated to match the working parameters; 9600 baud is empirically
+confirmed, modulation type (AFSK vs GFSK vs other) is still genuinely
+unclear. Do not mix the two satellites regardless of which numbers turn out
+right; different modulation, different frame length,
 different decoder. SCION-X is a later, separate task.
 
 ---
@@ -482,7 +490,10 @@ of identical bits.
 437.5 MHz, GFSK, 9600 baud, HDLC/AX.25 framing, no NRZI/G3RUH scrambling - long
 zero-runs create a CW tone that breaks clock recovery (root cause, per
 maintainer daniestevez). **Unresolved as of the discussion** - no working fix
-in gr-satellites yet.
+in gr-satellites yet. **2026-08-07: reconciled with the repo below - 9600
+baud checks out (matches the working code's SPS/FS constants), "GFSK" is
+plausible but unverified either way, "294-byte"/"1200bps" were the wrong
+numbers, not this line's 9600.**
 
 Two separate resource threads exist, don't conflate them:
 - **Jakub Horky** (external ground-station collaborator, Panska Ves, in the
