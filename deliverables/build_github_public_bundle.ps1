@@ -30,6 +30,7 @@ function Copy-PublicFile([string]$sourceRelative, [string]$destinationRelative) 
 
 $files = @(
     @("deliverables\github-public-template\README.md", "README.md"),
+    @("deliverables\github-public-template\CONTRIBUTING.md", "CONTRIBUTING.md"),
     @("deliverables\github-public-template\.gitignore", ".gitignore"),
     @("deliverables\github-public-template\.gitattributes", ".gitattributes"),
     @("deliverables\github-public-template\THIRD_PARTY_NOTICES.md", "THIRD_PARTY_NOTICES.md"),

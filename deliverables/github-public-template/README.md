@@ -38,6 +38,7 @@ used as input to the local audio decoder.
 - `reports/`: audio validation and historical coverage evidence
 - `reports/KOYO_Real_Results.xlsx`: formatted real-results workbook with charts
 - `presentation/`: final PPTX, PDF, dashboard image, and Thai/English script
+- `CONTRIBUTING.md`: standard contribution and disclosure rules
 - `docs/PUBLICATION_GUIDE.md`: safe publication and repository notes
 - `THIRD_PARTY_NOTICES.md`: dependency and SatNOGS data attribution
 

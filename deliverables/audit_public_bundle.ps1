@@ -7,6 +7,7 @@ $bundle = (Resolve-Path $BundlePath).Path
 $expected = @(
     ".gitattributes",
     ".gitignore",
+    "CONTRIBUTING.md",
     "README.md",
     "THIRD_PARTY_NOTICES.md",
     "docs\PUBLICATION_GUIDE.md",
