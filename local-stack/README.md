@@ -1,72 +1,93 @@
 # Local Grafana + InfluxDB stack
 
-A real local Grafana instance reading real KOYO telemetry, in response to Loren's
-2026-07-21 email asking for "a Grafana interface on SatNOGS." The `dashboard/`
-HTML artifact elsewhere in this repo covers the same data but is not literally
-Grafana - this is. Local only, not the public `dashboard.satnogs.org` (that still
-needs the decoder merged upstream, which is on hold - see `CLAUDE.md` §7).
+A local Grafana instance backed by decoded KOYO telemetry from SatNOGS. The
+layout follows the operational groups used by the HEX dashboard while keeping
+confirmed, candidate, and unavailable channels visibly separate. The
+standalone HTML dashboard remains available as an offline snapshot.
 
-No Docker or WSL is installed on this machine, so both InfluxDB and Grafana run
-as portable Windows binaries, downloaded (not authored) into `influxdb/` and
-`grafana/` - both gitignored, along with their runtime data (`influxdb-data/`,
-`grafana-data/`). Everything else in this folder (`start.ps1`, `stop.ps1`,
-`provisioning/`, `grafana-dashboards/`, `load_influx.py`, this README) is tracked.
+No Docker or WSL is required. InfluxDB and Grafana run as portable Windows
+binaries under this folder. The downloaded binaries and runtime data are
+gitignored; scripts, provisioning, and dashboard definitions are tracked.
 
 ## Running it
 
-```powershell
-.\start.ps1
-```
-
-Wait ~15-20s for both to finish booting, then:
-
-- Grafana: http://localhost:3000 - login `admin` / `admin` (default, never changed
-  since this only binds to localhost). Dashboard is under the "KOYO" folder.
-- InfluxDB: http://localhost:8086 - org `koyo`, bucket `koyo_telemetry`, token
-  `koyo-local-dev-token` (dev-only token, fine for a localhost-only service).
+From the repository root:
 
 ```powershell
-.\stop.ps1
+powershell -ExecutionPolicy Bypass -File .\local-stack\refresh.ps1
 ```
 
-## Refreshing data
-
-After `decode_koyo.py` regenerates `data/koyo/decoded/decoded.csv`, reload it:
+For the complete latest-available SatNOGS audio -> GNU Radio -> dashboard path:
 
 ```powershell
-python local-stack/load_influx.py
-python local-stack/load_events.py
+powershell -ExecutionPolicy Bypass -File .\local-stack\live_refresh.ps1
 ```
 
-Both idempotent - re-running with the same CSV just overwrites identical points.
-`load_influx.py` writes the raw per-frame telemetry (measurement `koyo`);
-`load_events.py` derives reboot and health-status-transition events from the
-same CSV (boot_counter/sd_card_failure_count changes between consecutive
-frames) and writes them as measurement `koyo_events`, so the reboot-timeline
-and health-transitions tables don't need to re-derive diffs in Flux.
+The refresh command starts the local services when needed, waits for them,
+loads the current decoded CSV, derives event data, and generates the feedback
+CSV.
 
-## What's in the dashboard
+- Grafana: http://localhost:3000/d/koyo-telemetry/koyo-telemetry
+- Login: `admin` / `admin`
+- InfluxDB: http://localhost:8086
+- Organization: `koyo`
+- Bucket: `koyo_telemetry`
 
-Mirrors the confirmed/candidate fields from `CLAUDE.md` §3-4, plus the mission
-overview/event tables also shown in the `dashboard/` HTML artifact:
+Stop the services with:
 
-- **EPS Temperatures**: the 4 CONFIRMED fields (battery TH0/TH1, CDH, ADCS)
-- **EPS Voltage Candidates**: 2 high-confidence solar panel voltage candidates,
-  1 weaker COMM voltage candidate - none fully CONFIRMED yet, see `CLAUDE.md` §4
-- **Spacecraft Health**: uptime, packet counter, boot counter, PIB health
-  status, SD card failure count (offsets 258/259 - corrected 2026-08-05, was a
-  decode-side field swap, not a spacecraft anomaly - see `CLAUDE.md` §3)
-- **Mission Overview**: total frames decoded, distinct observations, frames
-  decoded per day
-- **Event Log**: reboot timeline, health-status transitions (from `koyo_events`)
-- **Recent Frames**: latest 30 frames across all core fields, one row each
+```powershell
+powershell -ExecutionPolicy Bypass -File .\local-stack\stop.ps1
+```
 
-Panel definitions live in `grafana-dashboards/koyo_telemetry.json` and are
-provisioned automatically via `provisioning/dashboards/koyo-dashboards.yaml` -
-edit the JSON and Grafana picks it up within ~10s, no UI editing required
-(though UI edits are also allowed and will persist back to a copy in
-`grafana-data/`).
+## Data contract
 
-Same caveat as everywhere else in this project: the solar panel voltage and COMM
-voltage fields are candidates, not CONFIRMED - see `CLAUDE.md` §4 for what
-resolving them still needs (timestamp-matched readings off `koyo.hex20.space`).
+`load_influx.py` keeps the native per-frame measurement `koyo` and also writes
+the HEX-style dashboard contract:
+
+- measurement: `beacon`
+- tags: `channel`, `quality`, `unit`, `source`, `obs_id`
+- field: `value`
+
+Each completed audio run also writes one `decoder_run` point containing the
+observation/station identity, decoder status, captured and accepted frame
+counts, byte-exact match count, recovery rate, and latest CRC-valid raw frame
+HEX. This keeps decoder evidence beside the telemetry without treating the HEX
+string as an engineering value.
+
+`quality` is either `confirmed` or `candidate`. Candidate channel names also
+contain the word `candidate`, so they cannot be mistaken for validated flight
+telemetry.
+
+`export_hex_feedback.py` writes the same rows to
+`data/koyo/decoded/koyo_hex_feedback.csv`. This is a review artifact, not an
+uploader; its final columns and destination can be adjusted when the target
+ingestion schema is supplied.
+
+## Dashboard coverage
+
+The generated dashboard has the complete 43-panel target layout:
+
+- Summary and orbit
+- Beacon decoder status, observation/station identity, frame counts, recovery,
+  and latest CRC-valid raw frame HEX
+- Electrical power and four solar-array channel groups
+- Battery, power distribution, comms, thermal/health, and OBC groups
+- Recent exact `channel`/`value` feedback rows
+
+Confirmed values use their validated mappings. Unverified engineering mappings
+remain visibly labelled `CANDIDATE`. Expected target fields without an
+authorized mapping are present as orange `NOT DECODED` panels rather than
+invented values. The current dashboard has 22 live Flux query targets; all 22
+pass `validate_dashboard.py`.
+
+The orbit panel needs the port `8790` viewer to be reachable; all telemetry and
+decoder panels remain fully local.
+
+The dashboard JSON is generated by `build_dashboard.py`. The start and refresh
+scripts copy it to Grafana's runtime provisioning directory automatically.
+
+Validate every Flux target against the running InfluxDB instance:
+
+```powershell
+.\.venv\Scripts\python.exe .\local-stack\validate_dashboard.py
+```

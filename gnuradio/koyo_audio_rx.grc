@@ -1,0 +1,116 @@
+options:
+  parameters:
+    author: KOYO project
+    catch_exceptions: 'True'
+    category: '[KOYO]'
+    description: KOYO audio RX
+    generate_options: no_gui
+    id: koyo_audio_rx
+    output_language: python
+    run: 'True'
+    run_command: '{python} -u {filename}'
+    run_options: run
+    sizing_mode: fixed
+    title: KOYO SatNOGS Audio RX
+  states:
+    coordinate: [16, 16]
+    rotation: 0
+    state: enabled
+
+blocks:
+- name: samp_rate
+  id: variable
+  parameters:
+    comment: ''
+    value: '48000'
+  states:
+    coordinate: [256, 24]
+    rotation: 0
+    state: enabled
+- name: baudrate
+  id: variable
+  parameters:
+    comment: ''
+    value: '9600'
+  states:
+    coordinate: [416, 24]
+    rotation: 0
+    state: enabled
+- name: audio_file
+  id: variable
+  parameters:
+    comment: ''
+    value: "r'data/koyo/observations/14526577/obs_14526577.wav'"
+  states:
+    coordinate: [576, 24]
+    rotation: 0
+    state: enabled
+- name: kiss_file
+  id: variable
+  parameters:
+    comment: ''
+    value: "r'data/koyo/observations/14526577/grc_output.kiss'"
+  states:
+    coordinate: [856, 24]
+    rotation: 0
+    state: enabled
+- name: blocks_wavfile_source_0
+  id: blocks_wavfile_source
+  parameters:
+    file: audio_file
+    nchan: '1'
+    repeat: 'False'
+  states:
+    coordinate: [64, 216]
+    rotation: 0
+    state: enabled
+- name: satellites_fsk_demodulator_0
+  id: satellites_fsk_demodulator
+  parameters:
+    baudrate: baudrate
+    iq: 'False'
+    options: '"--clk_bw 0.15"'
+    samp_rate: samp_rate
+    subaudio: 'False'
+  states:
+    coordinate: [304, 208]
+    rotation: 0
+    state: enabled
+- name: satellites_ax25_deframer_0
+  id: satellites_ax25_deframer
+  parameters:
+    g3ruh_scrambler: 'True'
+    options: '""'
+  states:
+    coordinate: [576, 208]
+    rotation: 0
+    state: enabled
+- name: satellites_kiss_file_sink_0
+  id: satellites_kiss_file_sink
+  parameters:
+    append: 'False'
+    file: kiss_file
+    options: '""'
+  states:
+    coordinate: [832, 176]
+    rotation: 0
+    state: enabled
+- name: blocks_message_debug_0
+  id: blocks_message_debug
+  parameters:
+    en_uvec: 'True'
+    log_level: info
+  states:
+    coordinate: [832, 328]
+    rotation: 0
+    state: enabled
+
+connections:
+- [blocks_wavfile_source_0, '0', satellites_fsk_demodulator_0, '0']
+- [satellites_fsk_demodulator_0, '0', satellites_ax25_deframer_0, '0']
+- [satellites_ax25_deframer_0, out, satellites_kiss_file_sink_0, in]
+- [satellites_ax25_deframer_0, out, blocks_message_debug_0, print_pdu]
+
+metadata:
+  file_format: 1
+  grc_version: 3.10.0

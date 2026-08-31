@@ -3,7 +3,7 @@
 See [CLAUDE.md](CLAUDE.md) for full project context (scope, spacecraft details,
 confirmed frame layout, people, constraints). This file is just the repo map.
 
-## Status (2026-07-30)
+## Status
 
 - `koyo.ksy` / `decode_koyo.py` / `validate.py` — the real, verified KOYO decoder.
   Confirmed against two reference observations pulled directly from the SatNOGS
@@ -20,10 +20,9 @@ confirmed frame layout, people, constraints). This file is just the repo map.
   `fetch_satnogs.py` now filters by the permanent `sat_id` and cross-checks
   every fetched observation against it before keeping it - see
   `filter_observations_for_satellite()`.
-- Full real dataset re-fetched with the fix: 9,674 decoded frames across 412
-  observations, spanning launch (2026-07-07) to now, 17 reboots. Dashboard:
-  see the artifact link shared in conversation, or regenerate from
-  `data/koyo/decoded/decoded.csv`.
+- Current decoded dataset: 17,458 frames, including 17,100 post-launch frames
+  across 1,046 observations through 2026-08-30 UTC. Regenerate dashboard data
+  from `data/koyo/decoded/decoded.csv`.
 - **KOYO local audio decode confirmed working 2026-07-30** — see CLAUDE.md
   §9b and `verify_audio_pipeline.py`. `gr_satellites`' default clock-recovery
   bandwidth is too narrow for KOYO's 263-byte frames; `--clk_bw 0.15` fixes it,
@@ -49,8 +48,13 @@ analyze_satnogs_frames.py    classify raw frames by AX.25 header (diagnostic)
 prepare_satnogs_observation.py   per-observation audio -> WAV, for local demod
 run_koyo_grsat.ps1 / koyo_gr_satellites.yml   local gr_satellites demod, KISS out
 verify_audio_pipeline.py     control test: local audio decode vs SatNOGS' own demoddata
+live_koyo.py                 latest-available SatNOGS audio -> local GNU Radio -> decoded telemetry
+validate_audio_batch.py      multi-observation audio validation + evidence report
+summarize_coverage.py        full-history daily coverage report
+gnuradio/koyo_audio_rx.grc   editable GNU Radio Companion receive flowgraph
 inspect_kiss.py              inspect KISS frames from gr_satellites/Dire Wolf
 validate.py                  reference parser mirroring koyo.ksy, self-test
+local-stack/                 InfluxDB + HEX-style Grafana dashboard and feedback CSV
 ```
 
 ## Setup
@@ -58,6 +62,38 @@ validate.py                  reference parser mirroring koyo.ksy, self-test
 ```
 python -m venv .venv
 .venv/Scripts/pip install -r requirements.txt
+```
+
+Decode the latest available SatNOGS audio locally:
+
+```powershell
+.\.venv\Scripts\python.exe live_koyo.py --force-download
+```
+
+Fetch the latest available audio, decode it locally, and push it to Grafana:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\local-stack\live_refresh.ps1
+```
+
+Reproduce the five-observation audio/control validation report:
+
+```powershell
+.\.venv\Scripts\python.exe validate_audio_batch.py --push-dashboard
+```
+
+Morning handoff artifacts are under `reports/` and `deliverables/`.
+
+Generate the full historical coverage report separately from the OGG test set:
+
+```powershell
+.\.venv\Scripts\python.exe summarize_coverage.py
+```
+
+Refresh the local Grafana data and feedback export:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\local-stack\refresh.ps1
 ```
 
 ## archive/

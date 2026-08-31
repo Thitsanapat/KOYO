@@ -1,0 +1,6 @@
+obs_id,observation_start_utc,station,audio_bytes,wav_bytes,captured_kiss_frames,valid_koyo_frames,official_control_frames,byte_exact_matches,unrecovered_control_frames,recovery_rate_percent,result,error
+14526577,2026-07-16T17:47:30Z,MAUSyagi,14084735,71653582,6,1,35,1,34,2.9,PASS,
+14637273,2026-07-29T23:33:14Z,EA3AGB,14076701,71613646,8,1,3,1,2,33.3,PASS,
+14909294,2026-08-30T16:58:25Z,MAUSyagi,14004224,71165134,32,14,31,14,17,45.2,PASS,
+14909617,2026-08-30T18:36:38Z,W6MSU UHF,7733168,42546382,8,4,4,3,1,75.0,PASS,
+14909703,2026-08-30T18:43:47Z,MAUSyagi-AK,10431019,52762830,6,2,1,1,0,100.0,PASS,

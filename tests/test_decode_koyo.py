@@ -37,8 +37,8 @@ class DecodeKoyoTests(unittest.TestCase):
         self.assertEqual(parsed["boot_counter"], 42)
         self.assertEqual(parsed["rtc_time_unix"], 1740000000)
         self.assertEqual(parsed["rtc_year"], 2026)
-        self.assertEqual(parsed["pib_health_status"], 65)
-        self.assertEqual(parsed["sd_card_failure_count"], 175)
+        self.assertEqual(parsed["pib_health_status"], 175)
+        self.assertEqual(parsed["sd_card_failure_count"], 65)
         self.assertEqual(parsed["rtc_datetime"].year, 2026)
 
 

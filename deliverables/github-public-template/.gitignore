@@ -1,0 +1,41 @@
+# Downloaded or generated signal data
+data/
+*.ogg
+*.wav
+*.kiss
+*.bin
+*.raw
+*.iq
+*.sigmf-data
+*.sigmf-meta
+*.pcap
+*.sqlite*
+*.db
+*.zip
+*.7z
+*.rar
+
+# Confidential or local-only material
+koyosource/
+*CONFIDENTIAL*
+MAIL_*
+*.pem
+*.key
+*.p12
+*.pfx
+.env
+.env.*
+
+# Local services and environments
+.venv/
+__pycache__/
+*.pyc
+local-stack/
+logs/
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+~$*

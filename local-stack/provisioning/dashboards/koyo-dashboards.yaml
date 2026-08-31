@@ -9,5 +9,5 @@ providers:
     updateIntervalSeconds: 10
     allowUiUpdates: true
     options:
-      path: C:\Users\thits\OneDrive\Desktop\KOYO\local-stack\grafana-dashboards
+      path: C:\Users\thits\OneDrive\Desktop\KOYO\local-stack\grafana-data\provisioned-dashboards
       foldersFromFilesStructure: false
